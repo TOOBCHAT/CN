@@ -167,6 +167,77 @@
 | Delay | Constant | Variable |
 | Example | Telephone (PSTN) | Internet |
 | Reliability | Guaranteed path | Packets can be lost/reordered |
+---
+
+### Distance Vector vs Link State Routing
+
+| | Distance Vector (RIP) | Link State (OSPF) |
+|-|---|---|
+| Knowledge | Only neighbors' tables | Complete network topology |
+| Algorithm | Bellman-Ford | Dijkstra's |
+| Convergence | Slow (count-to-infinity) | Fast |
+| Updates | Entire table, periodic | Only changes, event-driven |
+| Metric | Hop count (max 16) | Link cost (bandwidth) |
+
+### Stop-and-Wait vs Go-Back-N vs Selective Repeat
+
+| | Stop-and-Wait | Go-Back-N | Selective Repeat |
+|-|---|---|---|
+| Window | 1 | N | N |
+| On loss | Retransmit that frame | Retransmit from lost onward | Retransmit only lost frame |
+| Receiver | Simple | Simple (no buffer) | Buffers out-of-order |
+| Efficiency | Very low | Medium | High (≈ TCP) |
+
+### WebSocket vs SSE vs Long Polling
+
+| | Long Polling | SSE | WebSocket |
+|-|---|---|---|
+| Direction | Server → Client (simulated) | Server → Client | Bidirectional |
+| Protocol | HTTP | HTTP | WebSocket (starts HTTP) |
+| Data format | Any | Text only | Text + Binary |
+| Auto-reconnect | Manual | Built-in | Manual |
+| Overhead | High | Low | Very low |
+| Best for | Fallback | Server push (feeds) | Bidirectional (chat, gaming) |
+
+### REST vs RPC vs gRPC
+
+| | REST | gRPC |
+|-|---|---|
+| Style | Resource-oriented (nouns) | Action-oriented (verbs) |
+| Format | JSON (text) | Protobuf (binary) |
+| Transport | HTTP/1.1 or HTTP/2 | HTTP/2 |
+| Streaming | Not native | Built-in |
+| Browser | Native | Needs gRPC-Web proxy |
+| Best for | Public APIs, web | Internal microservices |
+
+### POP3 vs IMAP
+
+| | POP3 | IMAP |
+|-|---|---|
+| Model | Download and delete | Sync and keep on server |
+| Multi-device | ❌ Poor | ✅ Synced |
+| Port | 110 (995 TLS) | 143 (993 TLS) |
+| Modern usage | Legacy | Standard |
+
+### Classful vs Classless (CIDR) Addressing
+
+| | Classful | Classless (CIDR) |
+|-|---|---|
+| Subnet sizes | Fixed: /8, /16, /24 only | Any prefix: /25, /26, /27... |
+| Flexibility | None | Full |
+| Waste | Severe (300 hosts → /16 = 65K) | Minimal (300 hosts → /23 = 510) |
+| Modern usage | Obsolete | Standard |
+
+### Repeater vs Hub vs Bridge vs Switch vs Router vs Gateway
+
+| Device | Layer | Addresses | Function |
+|--------|-------|-----------|----------|
+| Repeater | L1 | None | Amplifies signal |
+| Hub | L1 | None | Multi-port repeater, floods all |
+| Bridge | L2 | MAC | Connects 2 segments, filters by MAC |
+| Switch | L2 | MAC | Multi-port bridge, learns + forwards |
+| Router | L3 | IP | Forwards between networks, routing table |
+| Gateway | L7 | All | Protocol translation |
 
 ---
 
@@ -186,6 +257,12 @@
 | **Ethernet** | LAN framing, local delivery | L2 | MAC addressing, MTU=1500, CRC error detection |
 | **DHCP** | Automatic IP assignment | L7 | Assigns IP, subnet mask, gateway, DNS to hosts |
 | **NAT/PAT** | Private → public IP translation | L3 | Enables multiple private IPs to share one public IP |
+| **SMTP** | Sending/relaying email | L7 | Push only (port 25/587). POP3/IMAP retrieve email |
+| **POP3** | Retrieving email (download & delete) | L7 | Port 110. Legacy — replaced by IMAP |
+| **IMAP** | Retrieving email (sync & keep) | L7 | Port 143. Modern standard — multi-device sync |
+| **FTP** | File transfer | L7 | 2 connections (control:21, data:20). Largely replaced by HTTP |
+| **gRPC** | Remote procedure calls | L7 | Protobuf + HTTP/2. Binary, fast, streaming. Internal services |
+| **WebSocket** | Full-duplex bidirectional communication | L7 | HTTP upgrade → persistent TCP. Chat, gaming, real-time |
 
 ---
 
@@ -238,6 +315,12 @@
 3. **TLS:** Handshake — certificate, key exchange, session keys (1-2 RTT).
 4. **HTTP:** Encrypted request sent, server processes, encrypted response returned.
 5. **Browser:** Decrypts, parses HTML, fetches resources, renders.
+
+### WebSocket Handshake (HTTP Upgrade)
+1. Client sends HTTP GET with `Upgrade: websocket`, `Connection: Upgrade` headers.
+2. Server responds with **101 Switching Protocols**.
+3. TCP connection upgrades from HTTP to WebSocket protocol.
+4. Full-duplex communication — both sides send messages with minimal framing (2-14 byte headers).
 
 ---
 
@@ -405,6 +488,32 @@ A: Forward proxy = client side, hides client (filtering, anonymity). Reverse pro
 **50. Ping works but HTTP doesn't. Why?**
 A: Different protocols/ports. Firewall may allow ICMP but block TCP:80/443. Web server may not be running. TLS cert issue. Application error.
 
+### Additional Topics (51–58)
+
+**51. WebSocket vs SSE vs long polling?**
+A: Long polling = repeated HTTP requests (high overhead). SSE = one-way server push over persistent HTTP (auto-reconnect). WebSocket = full-duplex bidirectional over persistent TCP (starts with HTTP upgrade). Use SSE for server-push, WebSocket for bidirectional.
+
+**52. How does a WebSocket connection start?**
+A: Client sends HTTP GET with `Upgrade: websocket` header. Server responds 101 Switching Protocols. Connection upgrades to persistent full-duplex WebSocket. No more HTTP framing.
+
+**53. REST vs gRPC?**
+A: REST = resource-oriented, JSON, HTTP, browser-friendly, public APIs. gRPC = action-oriented, protobuf (binary), HTTP/2, streaming, internal microservices. REST for external; gRPC for internal high-performance.
+
+**54. What is Nagle's algorithm?**
+A: Buffers small TCP writes until ACK arrives or MSS is full. Improves efficiency but adds latency. Disable with TCP_NODELAY for real-time apps. Interacts badly with Delayed ACK.
+
+**55. MTU vs MSS?**
+A: MTU = max IP packet size (1500 Ethernet). MSS = max TCP payload (1460 = MTU−40). MSS negotiated during handshake to avoid fragmentation.
+
+**56. Distance vector vs link state routing?**
+A: Distance vector (RIP) = share tables with neighbors, Bellman-Ford, slow convergence. Link state (OSPF) = flood topology, Dijkstra's, fast convergence. OSPF is superior and standard.
+
+**57. CSMA/CD vs CSMA/CA?**
+A: CSMA/CD = wired Ethernet, detect collisions during TX, obsolete with switches. CSMA/CA = Wi-Fi, avoid collisions (can't detect during TX). Wi-Fi uses backoff + RTS/CTS.
+
+**58. What is classful addressing and why was it replaced?**
+A: Original IPv4 scheme with fixed classes: A(/8), B(/16), C(/24). Extremely wasteful — 300 hosts needed a whole Class B (65K addresses). Replaced by CIDR which allows any prefix length.
+
 ---
 
 ## 6. Rapid-Fire Revision
@@ -559,6 +668,54 @@ A: Different protocols/ports. Firewall may allow ICMP but block TCP:80/443. Web 
 **Q:** TCP/IP has how many layers?
 **A:** 4 (or 5).
 
+**Q:** WebSocket starts with what HTTP status?
+**A:** 101 Switching Protocols.
+
+**Q:** Is SSE bidirectional?
+**A:** No — server-to-client only.
+
+**Q:** WebSocket is which direction?
+**A:** Full-duplex bidirectional.
+
+**Q:** gRPC uses what serialization format?
+**A:** Protocol Buffers (protobuf) — binary.
+
+**Q:** gRPC runs over what transport?
+**A:** HTTP/2.
+
+**Q:** REST is resource-oriented or action-oriented?
+**A:** Resource-oriented (nouns: /users/123).
+
+**Q:** What does Nagle's algorithm do?
+**A:** Buffers small TCP writes until ACK arrives or MSS is full.
+
+**Q:** How to disable Nagle?
+**A:** Set TCP_NODELAY socket option.
+
+**Q:** MSS for Ethernet?
+**A:** 1460 bytes (MTU 1500 − 20 IP − 20 TCP).
+
+**Q:** SMTP sends or retrieves email?
+**A:** Sends (push). POP3/IMAP retrieve.
+
+**Q:** POP3 vs IMAP in one sentence?
+**A:** POP3 downloads and deletes. IMAP syncs and keeps on server.
+
+**Q:** CSMA/CD is for wired or wireless?
+**A:** Wired (old Ethernet). Wi-Fi uses CSMA/CA.
+
+**Q:** TCP's retransmission is closest to which ARQ?
+**A:** Selective Repeat.
+
+**Q:** What did classful addressing use?
+**A:** Fixed classes: A(/8), B(/16), C(/24). Replaced by CIDR.
+
+**Q:** What is the count-to-infinity problem?
+**A:** Distance vector routers keep incrementing hop count for a failed route through each other. Slow convergence.
+
+**Q:** OSPF uses which algorithm?
+**A:** Dijkstra's shortest path.
+
 ---
 
 ## 7. Final Interview Checklist
@@ -570,20 +727,27 @@ Before considering your CN preparation complete, you should be able to explain:
 - [ ] MAC vs IP vs Port — purpose and scope of each
 - [ ] How a switch learns MAC addresses and forwards frames
 - [ ] Hub vs Switch vs Router — layer, function, and domains
+- [ ] Repeater vs Hub vs Bridge vs Switch vs Router vs Gateway — full hierarchy
 - [ ] Collision domain vs broadcast domain
+- [ ] CSMA/CD vs CSMA/CA — wired vs wireless medium access
 - [ ] ARP — what it does, how it works, when it's used
 - [ ] Same-LAN communication flow vs cross-network communication flow
 - [ ] IPv4 addressing — subnet mask, network/host portions, private/public IPs
+- [ ] Classful addressing — what it was and why CIDR replaced it
 - [ ] Subnetting — calculate network address, broadcast address, usable hosts from CIDR
 - [ ] How routing works — routing table, longest prefix match, default route
+- [ ] Distance vector (RIP) vs link state (OSPF) — basic difference
 - [ ] NAT/PAT — why it exists and how it works
 - [ ] TTL, ICMP, ping, traceroute
+- [ ] MTU vs MSS and why fragmentation is avoided
 - [ ] **TCP 3-way handshake on a whiteboard** — SYN, SYN-ACK, ACK with sequence numbers
 - [ ] TCP reliable delivery — sequence numbers, ACKs, retransmission, fast retransmit
+- [ ] Stop-and-Wait vs Go-Back-N vs Selective Repeat — and how TCP relates
 - [ ] **Flow control vs congestion control** — explain the difference clearly
 - [ ] Slow start → congestion avoidance → fast recovery → timeout behavior
 - [ ] **TCP 4-way termination** — FIN, ACK, FIN, ACK and why 4 steps
 - [ ] TIME_WAIT — what it is and why it exists
+- [ ] Nagle's algorithm and TCP_NODELAY — when and why to disable
 - [ ] TCP vs UDP — when to use each
 - [ ] DNS resolution — full flow from browser to authoritative server
 - [ ] DNS records — A, AAAA, CNAME, MX, NS, TXT
@@ -591,10 +755,14 @@ Before considering your CN preparation complete, you should be able to explain:
 - [ ] HTTP status codes — 200, 201, 301, 302, 304, 400, 401, 403, 404, 500, 502, 503
 - [ ] HTTP statelessness — how cookies and sessions maintain state
 - [ ] HTTP/1.1 vs HTTP/2 vs HTTP/3 — multiplexing, HOL blocking, QUIC
+- [ ] WebSocket vs SSE vs long polling — when to use each
+- [ ] REST vs gRPC — when to choose each
+- [ ] WebSocket handshake (HTTP upgrade → 101 → full-duplex)
 - [ ] Symmetric vs asymmetric encryption and why TLS uses both
 - [ ] TLS handshake — certificate verification, key exchange, session keys
 - [ ] What a certificate and CA do
 - [ ] **"What happens when you type https://google.com?"** — the complete end-to-end flow
 - [ ] Proxy vs reverse proxy vs load balancer vs CDN
 - [ ] Socket lifecycle — bind, listen, accept, connect
+- [ ] SMTP, POP3, IMAP — email protocol roles
 - [ ] Common troubleshooting scenarios (ping works but HTTP doesn't, etc.)
